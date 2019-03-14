@@ -2,10 +2,15 @@
 
 usage="Usage: todo [-a item-to-add] [-c item-completed] [-u item-to-uncomplete] [-d item-to-delete] [-l c(ompleted)/u(ncompleted)/d(eleted)/all]"
 ccat="$HOME/.scripts/color-cat.sh"
-todofile="$HOME/tmp/TODO"
+# Below line may run into issues on other platforms, or if symlinks are involved
+dir=`dirname "$0"`
+todofile="$dir/data/TODO"
 numreg='^[0-9]+$'
 
-make_update () {
+mkdir -p "$dir/data"
+touch -a "$todofile"
+
+update_status () {
 	local query="$1"
 	local char="$2"
 	occ=$(grep -i "$query" $todofile)
@@ -13,19 +18,19 @@ make_update () {
 	if [ "$occ" = "" ]; then
 		echo "String $query not found"
 	elif [ $count -eq 1 ]; then
-		handle_single
+		update_single_status
 	elif [ $count -ge 2 ]; then
-		handle_multiple
+		update_multi_status
 	fi
 }
 
-handle_single () {
+update_single_status () {
 		rep="$char${occ:1}"
 		sed -e "s/$occ/$rep/" -i --follow-symlinks $todofile
 		echo "$rep" | "$ccat"
 }
 
-handle_multiple () {
+update_multi_status () {
 	readarray -t arr <<<"$occ"
 	echo "Multiple:"
 	for i in "${!arr[@]}"; do
@@ -40,11 +45,11 @@ handle_multiple () {
 	if [ "$choice" == "a" ]; then
 		for i in "${!arr[@]}"; do
 			occ="${arr[$i]}"
-			handle_single
+			update_single_status
 		done
 	else
 		occ="${arr[$choice]}"
-		handle_single
+		update_single_status
 	fi
 }
 
@@ -68,17 +73,17 @@ do
 			shift
 			;;
 		"-c")
-			make_update "$2" "*"
+			update_status "$2" "*"
 			shift
 			shift
 			;;
 		"-u")
-			make_update "$2" "-"
+			update_status "$2" "-"
 			shift
 			shift
 			;;
 		"-d")
-			make_update "$2" "#"
+			update_status "$2" "#"
 			shift
 			shift
 			;;
