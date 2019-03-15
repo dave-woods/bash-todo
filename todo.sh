@@ -13,20 +13,30 @@ touch -a "$todofile"
 update_status () {
 	local query="$1"
 	local char="$2"
-	occ=$(grep -i "$query" $todofile)
+	occ=$(grep -i "$query" "$todofile")
 	count=$(echo "$occ" | wc -l)
 	if [ "$occ" = "" ]; then
 		echo "String $query not found"
-	elif [ $count -eq 1 ]; then
+	elif [ "$count" -eq 1 ]; then
 		update_single_status
-	elif [ $count -ge 2 ]; then
+	elif [ "$count" -ge 2 ]; then
 		update_multi_status
 	fi
 }
 
 update_single_status () {
 		rep="$char${occ:1}"
-		sed -e "s/$occ/$rep/" -i --follow-symlinks $todofile
+		if [[ "$occ" == *\/* ]]; then
+			if [[ "$occ" != *\;* ]]; then
+				sed -e "s;$occ;$rep;" -i --follow-symlinks "$todofile"
+			elif [[ "$occ" != *~* ]]; then
+				sed -e "s~$occ~$rep~" -i --follow-symlinks "$todofile"
+			else
+				echo "Error: too many special characters."
+			fi
+		else
+			sed -e "s/$occ/$rep/" -i --follow-symlinks "$todofile"
+		fi
 		echo "$rep" | "$ccat"
 }
 
@@ -54,12 +64,12 @@ update_multi_status () {
 }
 
 if [ "$#" = 0 ]; then
-	grep "^-" $todofile | $ccat
+	grep "^-" "$todofile" | "$ccat"
 	exit 0
 fi
 
 if [ $(($# % 2)) = 1 ]; then
-	echo $usage
+	echo "$usage"
 	exit 1
 fi
 
@@ -67,7 +77,7 @@ while (( "$#" ))
 do
 	case "$1" in
 		"-a")
-			echo "- $2" >> $todofile
+			echo "- $2" >> "$todofile"
 			echo "- $2" | "$ccat"
 			shift
 			shift
@@ -90,19 +100,19 @@ do
 		"-l")
 			case "$2" in
 				"c")
-					grep "^\*" $todofile | $ccat
+					grep "^\*" "$todofile" | "$ccat"
 					;;
 				"u")
-					grep "^-" $todofile | $ccat
+					grep "^-" "$todofile" | "$ccat"
 					;;
 				"d")
-					grep "^#" $todofile | $ccat
+					grep "^#" "$todofile" | "$ccat"
 					;;
 				"all")
-					$ccat $todofile
+					"$ccat" "$todofile"
 					;;
 				*)
-					echo $usage
+					echo "$usage"
 					exit 1
 					;;
 			esac
